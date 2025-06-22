@@ -115,6 +115,7 @@ export default function PartySplitApp() {
             placeholder="Gastado"
             value={person.spent}
             onChange={(e) => handleChange(index, "spent", e.target.value)}
+            onFocus={(e) => e.target.select()}
           />
           <input
             className="border rounded p-2 w-48"
