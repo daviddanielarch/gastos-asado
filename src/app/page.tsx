@@ -192,7 +192,21 @@ export default function PartySplitApp() {
 
       {results.length > 0 && (
         <div className="mt-6 bg-gray-100 p-4 rounded shadow">
-          <h2 className="text-xl font-semibold mb-3">Transferencias</h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-xl font-semibold">Transferencias</h2>
+            <button
+              onClick={() => {
+                const message = results.map((r, idx) => 
+                  `${idx + 1}. ${r.from} debe pagar $${r.amount} a ${r.to} (${r.alias})`
+                ).join('\n');
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              📱 Compartir en WhatsApp
+            </button>
+          </div>
           {results.map((r, idx) => (
             <div key={idx} className="mb-1">
               {r.from} debe pagar ${r.amount} a {r.to} (Alias: {r.alias})
