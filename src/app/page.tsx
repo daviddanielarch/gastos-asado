@@ -1,16 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
+
+interface Person {
+  name: string;
+  spent: number;
+  alias: string;
+  enabled: boolean;
+  balance?: number;
+}
+
+interface Transfer {
+  from: string;
+  to: string;
+  alias: string;
+  amount: string;
+}
 
 export default function PartySplitApp() {
-  const [people, setPeople] = useState(() => {
+  const [people, setPeople] = useState<Person[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("partyPeople");
       return saved ? JSON.parse(saved) : [{ name: "", spent: 0, alias: "", enabled: true }];
     }
     return [{ name: "", spent: 0, alias: "", enabled: true }];
   });
-  const [results, setResults] = useState([]);
+
+  const [results, setResults] = useState<Transfer[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -18,19 +34,27 @@ export default function PartySplitApp() {
     }
   }, [people]);
 
-  const handleChange = (index, field, value) => {
+  const handleChange = (index: number, field: keyof Person, value: string) => {
     const newPeople = [...people];
-    newPeople[index][field] = field === "spent" ? Number(value) : value;
+    if (field === "spent") {
+      newPeople[index].spent = Number(value);
+    } else if (field === "name") {
+      newPeople[index].name = value;
+    } else if (field === "alias") {
+      newPeople[index].alias = value;
+    } else if (field === "enabled") {
+      newPeople[index].enabled = value === "true";
+    }
     setPeople(newPeople);
   };
 
-  const handleToggle = (index) => {
+  const handleToggle = (index: number) => {
     const newPeople = [...people];
     newPeople[index].enabled = !newPeople[index].enabled;
     setPeople(newPeople);
   };
 
-  const deletePerson = (index) => {
+  const deletePerson = (index: number) => {
     const newPeople = people.filter((_, i) => i !== index);
     setPeople(newPeople);
   };
@@ -50,24 +74,24 @@ export default function PartySplitApp() {
     const perPerson = total / activePeople.length;
 
     const balances = activePeople.map(p => ({ ...p, balance: p.spent - perPerson }));
-    const creditors = balances.filter(p => p.balance > 0).sort((a, b) => b.balance - a.balance);
-    const debtors = balances.filter(p => p.balance < 0).sort((a, b) => a.balance - b.balance);
+    const creditors = balances.filter(p => (p.balance ?? 0) > 0).sort((a, b) => (b.balance ?? 0) - (a.balance ?? 0));
+    const debtors = balances.filter(p => (p.balance ?? 0) < 0).sort((a, b) => (a.balance ?? 0) - (b.balance ?? 0));
 
-    const transfers = [];
+    const transfers: Transfer[] = [];
     let i = 0, j = 0;
 
     while (i < debtors.length && j < creditors.length) {
       const debtor = debtors[i];
       const creditor = creditors[j];
-      const amount = Math.min(-debtor.balance, creditor.balance);
+      const amount = Math.min(-(debtor.balance ?? 0), creditor.balance ?? 0);
 
       transfers.push({ from: debtor.name, to: creditor.name, alias: creditor.alias, amount: amount.toFixed(2) });
 
-      debtor.balance += amount;
-      creditor.balance -= amount;
+      debtor.balance! += amount;
+      creditor.balance! -= amount;
 
-      if (Math.abs(debtor.balance) < 0.01) i++;
-      if (Math.abs(creditor.balance) < 0.01) j++;
+      if (Math.abs(debtor.balance!) < 0.01) i++;
+      if (Math.abs(creditor.balance!) < 0.01) j++;
     }
 
     setResults(transfers);
@@ -93,7 +117,8 @@ export default function PartySplitApp() {
             onChange={(e) => handleChange(index, "spent", e.target.value)}
           />
           <input
-            className="border rounded p-2 w-48" placeholder="Alias"
+            className="border rounded p-2 w-48"
+            placeholder="Alias"
             value={person.alias}
             onChange={(e) => handleChange(index, "alias", e.target.value)}
           />
@@ -123,7 +148,7 @@ export default function PartySplitApp() {
         <button onClick={clearSpentValues} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
           Borrar Gastos
         </button>
-              <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4">
           <button
             onClick={() => {
               const data = JSON.stringify(people, null, 2);
@@ -144,13 +169,13 @@ export default function PartySplitApp() {
             <input
               type="file"
               accept="application/json"
-              onChange={(e) => {
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                   try {
-                    const data = JSON.parse(event.target.result);
+                    const data = JSON.parse(event.target?.result as string);
                     if (Array.isArray(data)) setPeople(data);
                   } catch (err) {
                     alert("Error al importar el archivo JSON." + err);
@@ -162,19 +187,6 @@ export default function PartySplitApp() {
             />
           </label>
         </div>
-
-        {results.length > 0 && (
-        <div className="mt-6 bg-gray-100 p-4 rounded shadow">
-          <h2 className="text-xl font-semibold mb-3">Transferencias</h2>
-          {results.map((r, idx) => (
-            <div key={idx} className="mb-1">
-              {r.from} debe pagar ${r.amount} a {r.to} (Alias: {r.alias})
-            </div>
-          ))}
-        </div>
-      )}
-    
-
       </div>
 
       {results.length > 0 && (
