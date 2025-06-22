@@ -153,7 +153,7 @@ export default function PartySplitApp() {
                     const data = JSON.parse(event.target.result);
                     if (Array.isArray(data)) setPeople(data);
                   } catch (err) {
-                    alert("Error al importar el archivo JSON.");
+                    alert("Error al importar el archivo JSON." + err);
                   }
                 };
                 reader.readAsText(file);
